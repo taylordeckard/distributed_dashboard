@@ -89,7 +89,7 @@ pub fn insert_cpu_usage(cpu_usage: f32) -> Result<(), Error> {
 // Function to retrieve all CPU usage stats from the database
 pub fn get_all_stats() -> Result<Vec<(i64, f32)>, Error> {
     let conn = get_connection()?;
-    let mut stmt = conn.prepare("SELECT timestamp, cpu_usage FROM stats ORDER BY timestamp ASC")?;
+    let mut stmt = conn.prepare("SELECT timestamp, cpu_usage FROM stats ORDER BY timestamp DESC LIMIT 500")?;
     let stats_iter = stmt.query_map([], |row| {
         Ok((
             row.get::<_, i64>(0)?,  // timestamp

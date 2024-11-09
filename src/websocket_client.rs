@@ -1,7 +1,7 @@
 use crate::config::Options;
 use crate::utils;
 use crate::db::get_all_stats;
-use futures_util::{SinkExt, StreamExt};
+use futures_util::StreamExt;
 use std::{
     error::Error,
     sync::{
@@ -58,7 +58,7 @@ async fn handle_messages(
                                 Ok(response) => {
                                     let config = Options::new();
                                     let server_url = format!(
-                                        "http://{}:{}/response/{}",
+                                        "http://{}:{}/api/proxy/response/{}",
                                         config.host,
                                         config.http_server.port,
                                         result.request_id,
@@ -103,17 +103,17 @@ async fn handle_messages(
     Ok(())
 }
 
-async fn send_test_message(
-    write: &mut (impl SinkExt<Message> + Unpin),
-) -> Result<(), Box<dyn Error + Send + Sync>> {
-    write
-        .send(Message::Text("Hello, WebSocket Server!".to_string()))
-        .await
-        .map_err(|_| {
-            println!("Error sending message");
-            Box::<dyn Error + Send + Sync>::from("Error sending test message")
-        })
-}
+// async fn send_test_message(
+//     write: &mut (impl SinkExt<Message> + Unpin),
+// ) -> Result<(), Box<dyn Error + Send + Sync>> {
+//     write
+//         .send(Message::Text("Hello, WebSocket Server!".to_string()))
+//         .await
+//         .map_err(|_| {
+//             println!("Error sending message");
+//             Box::<dyn Error + Send + Sync>::from("Error sending test message")
+//         })
+// }
 
 pub async fn connect_with_retry(
     running: Arc<AtomicBool>,
@@ -134,7 +134,8 @@ pub async fn connect_with_retry(
         match connect_async(url).await {
             Ok((ws_stream, _)) => {
                 println!("WebSocket connection established");
-                let (mut write, read) = ws_stream.split();
+                // let (mut write, read) = ws_stream.split();
+                let (_, read) = ws_stream.split();
 
                 // Reset retry count on successful connection
                 retry_count = 0;
@@ -142,9 +143,9 @@ pub async fn connect_with_retry(
                 let receive_task = tokio::spawn(handle_messages(read, running.clone()));
 
                 // Send a test message with error handling
-                if let Err(e) = send_test_message(&mut write).await {
-                    eprintln!("Error sending message: {e}");
-                }
+                // if let Err(e) = send_test_message(&mut write).await {
+                //     eprintln!("Error sending message: {e}");
+                // }
 
                 // Wait for the receive task to complete or error
                 match receive_task.await {

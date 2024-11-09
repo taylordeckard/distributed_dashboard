@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json;
+use serde_json::Value;
 use warp::ws::Message;
 use crate::websocket_server::Users;
 use std::collections::HashMap;
@@ -49,7 +50,7 @@ async fn poll_for_response(uuid: String) -> Option<String> {
 }
 
 pub async fn handler(source: String, users: Users) -> Result<impl warp::Reply, warp::Rejection> {
-    let id_str = String::from(source.clone());
+    let id_str = source.clone();
     let id: usize = id_str.parse().map_err(|_e| warp::reject::custom(ParseError))?;
     let user_map = users.read().await;
     let user = user_map.get(&id);
@@ -61,13 +62,15 @@ pub async fn handler(source: String, users: Users) -> Result<impl warp::Reply, w
         req_map.insert(body.request_id.clone(), None);
         drop(req_map);
         let msg = Message::text(serde_json::to_string(&body).unwrap());
-        if let Err(_disconnected) = user.send(msg) {
+        if let Err(_disconnected) = user.sender.send(msg) {
             eprintln!("Could not reach client through websocket.");
         };
         let response = poll_for_response(body.request_id.clone()).await;
-        return Ok(warp::reply::json(&response));
+        let json_res: Value = serde_json::from_str(&response.unwrap())
+            .expect("Expected response to be valid JSON");
+        Ok(warp::reply::json(&json_res))
     } else {
-        return Err(warp::reject::not_found());
+        Err(warp::reject::not_found())
     }
 }
 
@@ -77,7 +80,7 @@ pub async fn client_response_handler(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let data = std::str::from_utf8(&body).unwrap();
     let mut req_map = PENDING_REQUESTS.write().await;
-    if let None = req_map.get(&request_id) {
+    if req_map.get(&request_id).is_none() {
         eprintln!("here");
         drop(req_map);
         return Err(warp::reject::custom(RequestIdNotFound));

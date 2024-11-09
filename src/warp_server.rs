@@ -1,5 +1,6 @@
 use crate::config::Options;
-use crate::proxy::handler;
+use crate::proxy;
+use crate::clients;
 use crate::proxy::client_response_handler;
 use std::error::Error;
 use std::{
@@ -15,6 +16,7 @@ use crate::websocket_server::user_connected;
 use crate::websocket_server::Users;
 use crate::proxy::{ParseError, RequestIdNotFound};
 use serde::Serialize;
+use std::net::SocketAddr;
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -35,7 +37,7 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert::In
         code = StatusCode::BAD_REQUEST;
         message = "The supplied request_id was not found.";
     } else {
-        eprintln!("unhandled rejection: {:?}", err);
+        eprintln!("unhandled rejection: {err:?}");
         code = StatusCode::INTERNAL_SERVER_ERROR;
         message = "UNHANDLED_REJECTION";
     }
@@ -60,26 +62,33 @@ pub async fn run_server(
     });
     let users = Users::default();
     let users = warp::any().map(move || users.clone()); 
-    let api_route = warp::path!("api" / String)
+    let proxy_route = warp::path!("api" / "proxy" / String)
         .and(warp::get())
         .and(users.clone())
-        .and_then(handler);
+        .and_then(proxy::handler);
 
-    let response_route = warp::path!("response" / String)
+    let response_route = warp::path!("api" / "proxy" / "response" / String)
         .and(warp::post())
         .and(warp::body::bytes())
         .and_then(client_response_handler);
 
+    let clients_route = warp::path!("api" / "clients")
+        .and(warp::get())
+        .and(users.clone())
+        .and_then(clients::handler);
+
     let ws_route = warp::path!("ws")
         .and(warp::ws())
+        .and(warp::addr::remote())
         .and(users.clone())
-        .map(|ws: warp::ws::Ws, users| {
-            ws.on_upgrade(move |socket| user_connected(socket, users))
+        .map(|ws: warp::ws::Ws, addr: Option<SocketAddr>, users| {
+            ws.on_upgrade(move |socket| user_connected(socket, addr, users))
         });
 
     // Serve files from the "public" directory
     let static_route = warp::fs::dir("public").with(log);
-    let routes = api_route
+    let routes = proxy_route
+        .or(clients_route)
         .or(response_route)
         .or(ws_route)
         .or(static_route)
@@ -99,7 +108,7 @@ pub async fn run_server(
         shutdown_signal(running.clone()),
     );
 
-    println!("Static web server is listening on: http://{addr}");
+    println!("Web server is listening on: http://{addr}");
 
     // Await the server future
     server_future.await;

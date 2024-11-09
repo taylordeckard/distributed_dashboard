@@ -1,4 +1,5 @@
 mod cli;
+mod clients;
 mod config;
 mod cpu_monitor;
 mod db;

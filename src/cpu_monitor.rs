@@ -9,7 +9,7 @@ use std::{
 use sysinfo::System;
 use tokio::time;
 
-const CPU_CHECK_WAIT: u64 = 10;
+const CPU_CHECK_WAIT: u64 = 5;
 
 pub async fn cpu_monitoring_loop(running: Arc<AtomicBool>) {
     let mut sys = System::new_all();
