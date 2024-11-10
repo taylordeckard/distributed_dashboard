@@ -6,6 +6,8 @@ use std::error;
 use std::fmt;
 use std::time::SystemTime;
 
+pub const EXPIRE_SECONDS: u64 = 86400;
+
 #[derive(Debug)]
 pub enum Error {
     RusqliteError(rusqlite::Error),
@@ -102,4 +104,18 @@ pub fn get_all_stats() -> Result<Vec<(i64, f32)>, Error> {
         stats.push(stat?);
     }
     Ok(stats)
+}
+
+pub fn expire_records() -> Result<(), Error> {
+    let conn = get_connection()?;
+    let q = format!(
+        "DELETE FROM stats WHERE timestamp < (unixepoch() - {})",
+        EXPIRE_SECONDS
+    );
+    let mut stmt = conn.prepare(&q)?;
+    let _ = match stmt.execute([]) {
+        Ok(_) => eprintln!("Expiration Successful"),
+        Err(e) => eprintln!("An error occurred: {e}")
+    };
+    Ok(())
 }

@@ -1,3 +1,4 @@
+mod cleanup;
 mod cli;
 mod clients;
 mod config;
@@ -36,15 +37,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
             println!("Running the Client program");
             db::init()?;
             let cpu_task = tokio::spawn(cpu_monitor::cpu_monitoring_loop(running.clone()));
+            let cleanup_task = tokio::spawn(cleanup::cleanup_loop(running.clone()));
             let websocket_task =
                 tokio::spawn(websocket_client::connect_with_retry(running.clone()));
-            let _ = tokio::join!(cpu_task, websocket_task, ctrlc_task,);
+            let _ = tokio::join!(cpu_task, cleanup_task, websocket_task, ctrlc_task);
         }
         Some(Commands::Hub {}) => {
             println!("Running the Hub program");
-            // let websocket_task = tokio::spawn(websocket_server::run_server(running.clone()));
             let webserver_task = tokio::spawn(warp_server::run_server(running.clone()));
-            // let _ = tokio::join!(websocket_task, webserver_task, ctrlc_task,);
             let _ = tokio::join!(webserver_task);
         }
         None => {
