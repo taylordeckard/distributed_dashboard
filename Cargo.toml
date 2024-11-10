@@ -3,6 +3,11 @@ name = "distributed_dashboard"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+edition = "2021"
+name = "distributed_dashboard"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
 ctrlc = "3.4.5"
