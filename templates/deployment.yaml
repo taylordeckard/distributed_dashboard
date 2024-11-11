@@ -25,7 +25,7 @@ spec:
       imagePullSecrets:
       - name: regcred
       containers:
-      - name: shocalhost
+      - name: hub
         image: alpine:3.20
         ports:
         - containerPort: 8890
@@ -35,6 +35,23 @@ spec:
         env:
         - name: WS_HOST
           value: "0.0.0.0"
+        volumeMounts:
+        - name: warbler-nfs
+          mountPath: /app
+      - name: client
+        image: alpine:3.20
+        ports:
+        - containerPort: 8890
+        workingDir: /app
+        command: [ "/bin/sh", "-c", "--"  ]
+        args: ["apk add sqlite sqlite-libs libgcc && ./distributed_dashboard client"]
+        env:
+        - name: WS_HOST
+          value: "0.0.0.0"
+        - name: HUB_WS_URI
+          value: "wss://taylordeckard.me/distributed-dashboard/ws"
+        - name: HUB_PROXY_RESPONSE_URI 
+          value: "https://taylordeckard.me/distributed-dashboard/api/proxy/response"
         volumeMounts:
         - name: warbler-nfs
           mountPath: /app
