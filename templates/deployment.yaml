@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: distributed-dashboard
+  labels:
+    app: distributed-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: distributed-dashboard
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.annotations }}
+        {{- range $key, $value := .Values.annotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
+        rollme: {{ randAlphaNum 5 | quote  }}
+      labels:
+        app: distributed-dashboard
+    spec:
+      serviceAccountName: warbler-k8s
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: shocalhost
+        image: alpine:3.20
+        ports:
+        - containerPort: 8890
+        workingDir: /app
+        command: [ "/bin/sh", "-c", "--"  ]
+        args: ["apk add sqlite sqlite-libs libgcc && ./distributed_dashboard hub"]
+        env:
+        - name: WS_HOST
+          value: "0.0.0.0"
+        volumeMounts:
+        - name: warbler-nfs
+          mountPath: /app
+      volumes:
+      - name: warbler-nfs
+        nfs:
+          server: 10.0.1.198
+          path: /mnt/shared/distributed_dashboard

@@ -58,9 +58,8 @@ async fn handle_messages(
                                 Ok(response) => {
                                     let config = Options::new();
                                     let server_url = format!(
-                                        "http://{}:{}/api/proxy/response/{}",
-                                        config.host,
-                                        config.http_server.port,
+                                        "{}/{}",
+                                        config.hub.proxy_response_uri,
                                         result.request_id,
                                     );
                                     let res = client
@@ -128,7 +127,7 @@ pub async fn connect_with_retry(
             break;
         }
 
-        let url = format!("ws://{}/ws", config.ws_server_address());
+        let url = &config.hub.ws_uri;
         println!("Attempting to connect to {url}");
 
         match connect_async(url).await {
