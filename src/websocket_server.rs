@@ -1,13 +1,13 @@
+use futures_util::{SinkExt, StreamExt, TryFutureExt};
+use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
 };
+use tokio::sync::{mpsc, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
-use futures_util::{SinkExt, StreamExt, TryFutureExt};
-use tokio::sync::{mpsc, RwLock};
-use std::collections::HashMap;
-use std::net::SocketAddr;
 
 static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
 
@@ -18,11 +18,7 @@ pub struct Client {
 
 pub type Users = Arc<RwLock<HashMap<usize, Client>>>;
 
-pub async fn user_connected(
-    ws: WebSocket,
-    addr: Option<SocketAddr>,
-    users: Users,
-) {
+pub async fn user_connected(ws: WebSocket, addr: Option<SocketAddr>, users: Users) {
     // Use a counter to assign a new unique ID for this user.
     let my_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
     if let Some(addr) = addr {
@@ -51,10 +47,10 @@ pub async fn user_connected(
     });
 
     // Save the sender in our list of connected users.
-    users.write().await.insert(my_id, Client {
-        addr,
-        sender: tx,
-    });
+    users
+        .write()
+        .await
+        .insert(my_id, Client { addr, sender: tx });
 
     // Return a `Future` that is basically a state machine managing
     // this specific user's connection.
@@ -103,4 +99,3 @@ pub async fn user_disconnected(my_id: usize, users: &Users) {
     // Stream closed up, so remove from the user list
     users.write().await.remove(&my_id);
 }
-

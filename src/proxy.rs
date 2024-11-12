@@ -1,14 +1,12 @@
-use serde::{Deserialize, Serialize};
-use serde_json;
-use serde_json::Value;
-use warp::ws::Message;
 use crate::websocket_server::Users;
-use std::collections::HashMap;
-use uuid::Uuid;
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::HashMap;
 use tokio::sync::RwLock;
 use tokio::time::{sleep, Duration};
-
+use uuid::Uuid;
+use warp::ws::Message;
 
 #[derive(Serialize, Deserialize)]
 struct ProxyResponse {
@@ -29,9 +27,8 @@ pub struct RequestIdNotFound;
 impl warp::reject::Reject for ParseError {}
 impl warp::reject::Reject for RequestIdNotFound {}
 
-static PENDING_REQUESTS: Lazy<RwLock<HashMap<String, Option<String>>>> = Lazy::new(|| {
-    RwLock::new(HashMap::new())
-});
+static PENDING_REQUESTS: Lazy<RwLock<HashMap<String, Option<String>>>> =
+    Lazy::new(|| RwLock::new(HashMap::new()));
 
 static MAX_POLL_ITERS: u32 = 5000;
 
@@ -44,14 +41,16 @@ async fn poll_for_response(uuid: String) -> Option<String> {
             }
         }
         drop(req_map);
-        sleep(Duration::from_millis(100)).await; 
+        sleep(Duration::from_millis(100)).await;
     }
     None
 }
 
 pub async fn handler(source: String, users: Users) -> Result<impl warp::Reply, warp::Rejection> {
     let id_str = source.clone();
-    let id: usize = id_str.parse().map_err(|_e| warp::reject::custom(ParseError))?;
+    let id: usize = id_str
+        .parse()
+        .map_err(|_e| warp::reject::custom(ParseError))?;
     let user_map = users.read().await;
     let user = user_map.get(&id);
     if let Some(user) = user {
@@ -66,8 +65,8 @@ pub async fn handler(source: String, users: Users) -> Result<impl warp::Reply, w
             eprintln!("Could not reach client through websocket.");
         };
         let response = poll_for_response(body.request_id.clone()).await;
-        let json_res: Value = serde_json::from_str(&response.unwrap())
-            .expect("Expected response to be valid JSON");
+        let json_res: Value =
+            serde_json::from_str(&response.unwrap()).expect("Expected response to be valid JSON");
         Ok(warp::reply::json(&json_res))
     } else {
         Err(warp::reject::not_found())
@@ -76,7 +75,7 @@ pub async fn handler(source: String, users: Users) -> Result<impl warp::Reply, w
 
 pub async fn client_response_handler(
     request_id: String,
-    body: warp::hyper::body::Bytes
+    body: warp::hyper::body::Bytes,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let data = std::str::from_utf8(&body).unwrap();
     let mut req_map = PENDING_REQUESTS.write().await;

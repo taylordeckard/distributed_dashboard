@@ -91,11 +91,12 @@ pub fn insert_cpu_usage(cpu_usage: f32) -> Result<(), Error> {
 // Function to retrieve all CPU usage stats from the database
 pub fn get_all_stats() -> Result<Vec<(i64, f32)>, Error> {
     let conn = get_connection()?;
-    let mut stmt = conn.prepare("SELECT timestamp, cpu_usage FROM stats ORDER BY timestamp DESC LIMIT 500")?;
+    let mut stmt =
+        conn.prepare("SELECT timestamp, cpu_usage FROM stats ORDER BY timestamp DESC LIMIT 500")?;
     let stats_iter = stmt.query_map([], |row| {
         Ok((
-            row.get::<_, i64>(0)?,  // timestamp
-            row.get::<_, f32>(1)?,  // cpu_usage
+            row.get::<_, i64>(0)?, // timestamp
+            row.get::<_, f32>(1)?, // cpu_usage
         ))
     })?;
 
@@ -108,14 +109,11 @@ pub fn get_all_stats() -> Result<Vec<(i64, f32)>, Error> {
 
 pub fn expire_records() -> Result<(), Error> {
     let conn = get_connection()?;
-    let q = format!(
-        "DELETE FROM stats WHERE timestamp < (unixepoch() - {})",
-        EXPIRE_SECONDS
-    );
+    let q = format!("DELETE FROM stats WHERE timestamp < (unixepoch() - {EXPIRE_SECONDS})");
     let mut stmt = conn.prepare(&q)?;
-    let _ = match stmt.execute([]) {
+    let () = match stmt.execute([]) {
         Ok(_) => eprintln!("Expiration Successful"),
-        Err(e) => eprintln!("An error occurred: {e}")
+        Err(e) => eprintln!("An error occurred: {e}"),
     };
     Ok(())
 }

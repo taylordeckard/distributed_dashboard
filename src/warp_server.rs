@@ -1,8 +1,13 @@
+use crate::clients;
 use crate::config::Options;
 use crate::proxy;
-use crate::clients;
 use crate::proxy::client_response_handler;
+use crate::proxy::{ParseError, RequestIdNotFound};
+use crate::websocket_server::user_connected;
+use crate::websocket_server::Users;
+use serde::Serialize;
 use std::error::Error;
+use std::net::SocketAddr;
 use std::{
     net::{IpAddr, Ipv4Addr},
     sync::{
@@ -10,13 +15,8 @@ use std::{
         Arc,
     },
 };
-use warp::{Filter, Reply, Rejection};
 use warp::http::StatusCode;
-use crate::websocket_server::user_connected;
-use crate::websocket_server::Users;
-use crate::proxy::{ParseError, RequestIdNotFound};
-use serde::Serialize;
-use std::net::SocketAddr;
+use warp::{Filter, Rejection, Reply};
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -61,7 +61,7 @@ pub async fn run_server(
         );
     });
     let users = Users::default();
-    let users = warp::any().map(move || users.clone()); 
+    let users = warp::any().map(move || users.clone());
     let proxy_route = warp::path!("api" / "proxy" / String)
         .and(warp::get())
         .and(users.clone())

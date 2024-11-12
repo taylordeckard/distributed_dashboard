@@ -4,11 +4,11 @@ mod clients;
 mod config;
 mod cpu_monitor;
 mod db;
-mod warp_server;
+mod proxy;
 mod utils;
+mod warp_server;
 mod websocket_client;
 mod websocket_server;
-mod proxy;
 
 use clap::Parser;
 use cli::{Args, Commands};
@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             println!("Running the Client program");
             db::init()?;
             let cpu_task = tokio::spawn(cpu_monitor::cpu_monitoring_loop(running.clone()));
-            let cleanup_task = tokio::spawn(cleanup::cleanup_loop(running.clone()));
+            let cleanup_task = tokio::spawn(cleanup::run(running.clone()));
             let websocket_task =
                 tokio::spawn(websocket_client::connect_with_retry(running.clone()));
             let _ = tokio::join!(cpu_task, cleanup_task, websocket_task, ctrlc_task);

@@ -14,14 +14,15 @@ struct Response {
 
 pub async fn handler(users: Users) -> Result<impl warp::Reply, warp::Rejection> {
     let user_map = users.read().await;
-    let client_ids: Vec<usize> = user_map.keys().cloned().collect();
-    let clients = client_ids.into_iter()
+    let client_ids: Vec<usize> = user_map.keys().copied().collect();
+    let clients = client_ids
+        .into_iter()
         .map(|id| Client {
             address: format!(
-                 "{}:{}",
-                 user_map.get(&id).unwrap().addr.unwrap().ip(),
-                 user_map.get(&id).unwrap().addr.unwrap().port(),
-             ),
+                "{}:{}",
+                user_map.get(&id).unwrap().addr.unwrap().ip(),
+                user_map.get(&id).unwrap().addr.unwrap().port(),
+            ),
             id,
         })
         .collect();

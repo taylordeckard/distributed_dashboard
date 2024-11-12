@@ -1,7 +1,10 @@
 use crate::config::Options;
-use crate::utils;
 use crate::db::get_all_stats;
+use crate::utils;
 use futures_util::StreamExt;
+use reqwest::Client;
+use serde::Deserialize;
+use serde_json::from_str;
 use std::{
     error::Error,
     sync::{
@@ -11,10 +14,6 @@ use std::{
 };
 use tokio::time::{sleep, Duration};
 use tokio_tungstenite::{connect_async, tungstenite, tungstenite::protocol::Message};
-use serde::Deserialize;
-use serde_json::from_str;
-use reqwest::Client;
-
 
 #[derive(Debug, Deserialize)]
 struct ReqMsg {

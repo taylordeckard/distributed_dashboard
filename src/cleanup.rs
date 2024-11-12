@@ -1,4 +1,5 @@
 use crate::db::expire_records;
+use crate::db::EXPIRE_SECONDS;
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -7,9 +8,8 @@ use std::{
     time::Duration,
 };
 use tokio::time;
-use crate::db::EXPIRE_SECONDS;
 
-pub async fn cleanup_loop(running: Arc<AtomicBool>) {
+pub async fn run(running: Arc<AtomicBool>) {
     let mut interval = time::interval(Duration::from_secs(EXPIRE_SECONDS));
 
     interval.tick().await;
