@@ -32,10 +32,10 @@ static PENDING_REQUESTS: Lazy<RwLock<HashMap<String, Option<String>>>> =
 
 static MAX_POLL_ITERS: u32 = 5000;
 
-async fn poll_for_response(uuid: String) -> Option<String> {
+async fn poll_for_response(uuid: &str) -> Option<String> {
     for _ in 1..MAX_POLL_ITERS {
         let req_map = PENDING_REQUESTS.read().await;
-        if let Some(response) = req_map.get(&uuid).cloned() {
+        if let Some(response) = req_map.get(uuid).cloned() {
             if response.is_some() {
                 return response;
             }
@@ -47,8 +47,7 @@ async fn poll_for_response(uuid: String) -> Option<String> {
 }
 
 pub async fn handler(source: String, users: Users) -> Result<impl warp::Reply, warp::Rejection> {
-    let id_str = source.clone();
-    let id: usize = id_str
+    let id: usize = source
         .parse()
         .map_err(|_e| warp::reject::custom(ParseError))?;
     let user_map = users.read().await;
@@ -64,7 +63,7 @@ pub async fn handler(source: String, users: Users) -> Result<impl warp::Reply, w
         if let Err(_disconnected) = user.sender.send(msg) {
             eprintln!("Could not reach client through websocket.");
         };
-        let response = poll_for_response(body.request_id.clone()).await;
+        let response = poll_for_response(&body.request_id).await;
         let json_res: Value =
             serde_json::from_str(&response.unwrap()).expect("Expected response to be valid JSON");
         Ok(warp::reply::json(&json_res))
