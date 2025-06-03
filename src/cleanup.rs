@@ -23,7 +23,7 @@ pub async fn run(running: Arc<AtomicBool>) {
             }
         }
 
-        // Insert CPU usage into the database
+        // Expire old CPU usage records
         if let Err(e) = expire_records() {
             eprintln!("Error expiring records: {e}");
         }
