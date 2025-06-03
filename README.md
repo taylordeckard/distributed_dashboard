@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-### Prerequesites
+### Prerequisites
 - [rust](https://www.rust-lang.org/) installed
 
 ### Run the Hub
